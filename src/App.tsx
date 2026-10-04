@@ -13,6 +13,7 @@ import { OnboardingFlow } from './features/onboarding/OnboardingFlow';
 
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<DestinationTab>('today');
+  const [styleSegment, setStyleSegment] = useState<'profile' | 'outfits' | 'log' | 'insights' | 'plan'>('profile');
   const [isDevMode, setIsDevMode] = useState(
     typeof window !== 'undefined' && window.location.pathname === '/dev/components'
   );
@@ -75,9 +76,15 @@ export const App: React.FC = () => {
       {/* Tablet & Desktop Persistent Left Rail per SPEC Section 4 */}
       <NavRail
         activeTab={activeTab}
-        onSelectTab={setActiveTab}
+        onSelectTab={(tab) => {
+          setActiveTab(tab);
+        }}
         isDark={isDark}
         onToggleTheme={handleToggleTheme}
+        onSelectOutfitBuilder={() => {
+          setActiveTab('style');
+          setStyleSegment('outfits');
+        }}
       />
 
       {/* Main Content Area */}
@@ -117,7 +124,7 @@ export const App: React.FC = () => {
         <main className="flex-1 px-4 sm:px-8 py-6 sm:py-8 pb-24 md:pb-8 overflow-y-auto">
           {activeTab === 'today' && <TodayScreen onSelectTab={setActiveTab} />}
           {activeTab === 'closet' && <ClosetScreen />}
-          {activeTab === 'style' && <StyleScreen />}
+          {activeTab === 'style' && <StyleScreen initialSegment={styleSegment} />}
           {activeTab === 'me' && <MeScreen />}
         </main>
       </div>

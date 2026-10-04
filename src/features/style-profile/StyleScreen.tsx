@@ -13,8 +13,10 @@ import {
   OblongFaceIcon,
   DiamondFaceIcon,
 } from './FaceShapeIllustrations';
+import { Preferences, StyleProfile } from '../../data/types';
 import { styleProfileRepo } from '../../data/repositories/styleProfileRepo';
-import { StyleProfile } from '../../data/types';
+import { preferencesRepo } from '../../data/repositories/preferencesRepo';
+import { LookbookGallery } from '../outfits/LookbookGallery';
 import {
   SlidersHorizontal,
   Sparkles,
@@ -28,14 +30,25 @@ import {
   ChevronUp,
 } from 'lucide-react';
 
-export const StyleScreen: React.FC = () => {
-  const [segment, setSegment] = useState<'profile' | 'outfits' | 'log' | 'insights' | 'plan'>('profile');
+interface StyleScreenProps {
+  initialSegment?: 'profile' | 'outfits' | 'log' | 'insights' | 'plan';
+}
+
+export const StyleScreen: React.FC<StyleScreenProps> = ({ initialSegment = 'profile' }) => {
+  const [segment, setSegment] = useState<'profile' | 'outfits' | 'log' | 'insights' | 'plan'>(initialSegment);
   const [profile, setProfile] = useState<StyleProfile | null>(null);
+  const [preferences, setPreferences] = useState<Preferences | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [isConfirmDeleteOpen, setIsConfirmDeleteOpen] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (initialSegment) {
+      setSegment(initialSegment);
+    }
+  }, [initialSegment]);
 
   const segments = [
     { id: 'profile', label: 'Profile' },
@@ -48,8 +61,12 @@ export const StyleScreen: React.FC = () => {
   const loadProfile = useCallback(async () => {
     setIsLoading(true);
     try {
-      const p = await styleProfileRepo.getProfile();
+      const [p, pref] = await Promise.all([
+        styleProfileRepo.getProfile(),
+        preferencesRepo.get(),
+      ]);
       setProfile(p || null);
+      setPreferences(pref || null);
     } catch {
       setProfile(null);
     } finally {
@@ -371,8 +388,13 @@ export const StyleScreen: React.FC = () => {
         </div>
       )}
 
-      {/* Placeholder previews for secondary segments (Outfits, Log, Insights, Plan) */}
-      {segment !== 'profile' && (
+      {/* Segment 2: Outfits (Lookbook, Studio & Capsule) */}
+      {segment === 'outfits' && (
+        <LookbookGallery profile={profile} preferences={preferences} />
+      )}
+
+      {/* Placeholder previews for secondary segments (Log, Insights, Plan) */}
+      {segment !== 'profile' && segment !== 'outfits' && (
         <Card className="p-8 text-center space-y-3">
           <h2 className="font-serif text-lg font-bold text-text-primary capitalize">
             {segment} View

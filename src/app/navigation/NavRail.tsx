@@ -19,6 +19,7 @@ interface NavRailProps {
   onSelectTab: (tab: DestinationTab) => void;
   isDark: boolean;
   onToggleTheme: () => void;
+  onSelectOutfitBuilder?: () => void;
 }
 
 export const NavRail: React.FC<NavRailProps> = ({
@@ -26,6 +27,7 @@ export const NavRail: React.FC<NavRailProps> = ({
   onSelectTab,
   isDark,
   onToggleTheme,
+  onSelectOutfitBuilder,
 }) => {
   const primaryTabs: { id: DestinationTab; label: string; icon: React.ReactNode }[] = [
     { id: 'today', label: 'Today', icon: <Sparkles className="w-5 h-5" /> },
@@ -91,13 +93,15 @@ export const NavRail: React.FC<NavRailProps> = ({
           </span>
           <div className="space-y-1 pt-1">
             {secondaryLinks.map((link) => (
-              <div
+              <button
                 key={link.label}
-                className="flex items-center gap-3 px-3 py-2 rounded-control text-xs text-text-secondary hover:text-text-primary hover:bg-surface-alt transition-colors cursor-pointer"
+                type="button"
+                onClick={link.label === 'Outfit Builder' ? onSelectOutfitBuilder : undefined}
+                className="w-full flex items-center gap-3 px-3 py-2 rounded-control text-xs text-text-secondary hover:text-text-primary hover:bg-surface-alt transition-colors cursor-pointer text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
               >
                 <span className="text-text-secondary">{link.icon}</span>
                 <span>{link.label}</span>
-              </div>
+              </button>
             ))}
           </div>
         </div>
