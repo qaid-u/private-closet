@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   TopAppBar,
   OnDeviceBadge,
@@ -32,7 +32,13 @@ import {
   DestinationTab,
 } from '../../ui';
 import { useUiStore } from '../../stores/uiStore';
-import { Sun, Moon, Sparkles, Palette } from 'lucide-react';
+import { Sun, Moon, Sparkles, Palette, Database, Trash2, Download, RefreshCw, Cpu, HardDrive, CheckCircle2 } from 'lucide-react';
+import { seedService } from '../../data/seedService';
+import { itemsRepo } from '../../data/repositories/itemsRepo';
+import { styleProfileRepo } from '../../data/repositories/styleProfileRepo';
+import { storageService, StorageEstimate } from '../../data/repositories/storageService';
+import { imagesRepo } from '../../data/repositories/imagesRepo';
+import { MockModelManager, AIModelInfo } from '../../ai';
 
 export const DevComponentsPage: React.FC<{ onBackToApp?: () => void }> = ({ onBackToApp }) => {
   const { setTheme, isDarkMode } = useUiStore();
@@ -51,6 +57,123 @@ export const DevComponentsPage: React.FC<{ onBackToApp?: () => void }> = ({ onBa
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showToast, setShowToast] = useState(true);
+
+  // Phase 2: Data & AI Service Demo State
+  const [modelManager] = useState(() => new MockModelManager());
+  const [itemCount, setItemCount] = useState<number>(0);
+  const [hasSample, setHasSample] = useState<boolean>(false);
+  const [hasProfile, setHasProfile] = useState<boolean>(false);
+  const [storageEstimate, setStorageEstimate] = useState<StorageEstimate | null>(null);
+  const [models, setModels] = useState<AIModelInfo[]>([]);
+  const [installingId, setInstallingId] = useState<string | null>(null);
+  const [installProgress, setInstallProgress] = useState<number>(0);
+  const [sampleItems, setSampleItems] = useState<{ id: string; name: string; category: string; imageUrl?: string }[]>([]);
+  const [isDataBusy, setIsDataBusy] = useState<boolean>(false);
+  const [dataMessage, setDataMessage] = useState<string>('');
+
+  const refreshDataLayer = React.useCallback(async () => {
+    try {
+      const count = await itemsRepo.count();
+      setItemCount(count);
+      const sampleExists = await seedService.hasSampleData();
+      setHasSample(sampleExists);
+      const profileExists = await styleProfileRepo.hasProfile();
+      setHasProfile(profileExists);
+      const est = await storageService.getStorageEstimate();
+      setStorageEstimate(est);
+      const mList = modelManager.list();
+      setModels([...mList]);
+
+      if (count > 0) {
+        const items = await itemsRepo.getAll();
+        const previews = await Promise.all(
+          items.slice(0, 10).map(async (item) => {
+            const url = await imagesRepo.getUrl(item.imageCutoutId);
+            return {
+              id: item.id,
+              name: item.name,
+              category: item.category,
+              imageUrl: url,
+            };
+          })
+        );
+        setSampleItems(previews);
+      } else {
+        setSampleItems([]);
+      }
+    } catch (e) {
+      console.error('Error refreshing data layer:', e);
+    }
+  }, [modelManager]);
+
+  useEffect(() => {
+    refreshDataLayer();
+  }, [refreshDataLayer]);
+
+  const handleLoadSampleWardrobe = async () => {
+    setIsDataBusy(true);
+    setDataMessage('Loading 10 sample items and SVG cutouts into IndexedDB...');
+    try {
+      await seedService.loadSampleWardrobe();
+      await refreshDataLayer();
+      setDataMessage('Sample wardrobe loaded successfully (10 items).');
+    } catch {
+      setDataMessage('Failed to load sample wardrobe.');
+    } finally {
+      setIsDataBusy(false);
+    }
+  };
+
+  const handleRemoveSampleWardrobe = async () => {
+    setIsDataBusy(true);
+    setDataMessage('Removing sample items from IndexedDB...');
+    try {
+      await seedService.removeSampleWardrobe();
+      await refreshDataLayer();
+      setDataMessage('Sample wardrobe removed successfully.');
+    } catch {
+      setDataMessage('Failed to remove sample wardrobe.');
+    } finally {
+      setIsDataBusy(false);
+    }
+  };
+
+  const handleDeleteStyleData = async () => {
+    setIsDataBusy(true);
+    setDataMessage('Deleting style profile data (items and wear logs preserved)...');
+    try {
+      await styleProfileRepo.deleteStyleData();
+      await refreshDataLayer();
+      setDataMessage('Style profile data deleted. Recommendations will return to general rules.');
+    } catch {
+      setDataMessage('Failed to delete style data.');
+    } finally {
+      setIsDataBusy(false);
+    }
+  };
+
+  const handleInstallModel = async (id: string) => {
+    setInstallingId(id);
+    setInstallProgress(0);
+    try {
+      await modelManager.install(id, (p) => setInstallProgress(p));
+      const mList = modelManager.list();
+      setModels([...mList]);
+      setDataMessage(`Model "${id}" installed (simulated).`);
+    } catch {
+      setDataMessage(`Failed to install model "${id}".`);
+    } finally {
+      setInstallingId(null);
+      setInstallProgress(0);
+    }
+  };
+
+  const handleRemoveModel = async (id: string) => {
+    await modelManager.remove(id);
+    const mList = modelManager.list();
+    setModels([...mList]);
+    setDataMessage(`Model "${id}" removed.`);
+  };
 
   const filterOptions = [
     { id: 'all', label: 'All', count: 18 },
@@ -395,6 +518,213 @@ export const DevComponentsPage: React.FC<{ onBackToApp?: () => void }> = ({ onBa
           secondaryActionLabel="Try with a sample closet"
           onSecondaryAction={() => alert('Sample closet')}
         />
+      </section>
+
+      {/* Section 9: Phase 2 Data Layer, Repositories, AI Models & Storage */}
+      <section aria-labelledby="sec-phase2" className="space-y-6">
+        <div className="border-b border-border pb-2 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Database className="w-5 h-5 text-primary" />
+            <h2 id="sec-phase2" className="font-serif text-xl font-bold">
+              9. Phase 2: Data Layer, Repositories, Seed Data & AI Models
+            </h2>
+          </div>
+          <OnDeviceBadge label="Phase 2 Live" size="sm" />
+        </div>
+
+        {dataMessage && (
+          <div className="p-3 rounded-lg bg-primary-soft text-text-primary text-sm flex items-center justify-between">
+            <span className="font-medium">{dataMessage}</span>
+            <Button size="sm" variant="ghost" onClick={() => setDataMessage('')}>
+              Dismiss
+            </Button>
+          </div>
+        )}
+
+        {/* Repositories Controls & Status */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card className="p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-semibold text-text-secondary uppercase tracking-wider">
+                IndexedDB Items
+              </span>
+              <span className="text-2xl font-bold font-serif text-primary">{itemCount}</span>
+            </div>
+            <p className="text-xs text-text-secondary">
+              Status: {hasSample ? 'Sample closet active (10 items)' : 'No sample items loaded'}
+            </p>
+            <div className="flex flex-col gap-2 pt-2">
+              <Button
+                size="sm"
+                variant={hasSample ? 'outline' : 'primary'}
+                leftIcon={<Download className="w-4 h-4" />}
+                onClick={handleLoadSampleWardrobe}
+                disabled={isDataBusy}
+              >
+                Load Sample Wardrobe
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                leftIcon={<Trash2 className="w-4 h-4 text-danger" />}
+                onClick={handleRemoveSampleWardrobe}
+                disabled={isDataBusy || !hasSample}
+              >
+                Remove Sample Wardrobe
+              </Button>
+            </div>
+          </Card>
+
+          <Card className="p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-semibold text-text-secondary uppercase tracking-wider">
+                Style Profile Data
+              </span>
+              <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-surface-alt">
+                {hasProfile ? 'Configured' : 'Empty'}
+              </span>
+            </div>
+            <p className="text-xs text-text-secondary">
+              Profile rules: warm undertone, athletic build, proportion rules.
+            </p>
+            <div className="flex flex-col gap-2 pt-2">
+              <Button
+                size="sm"
+                variant="outline"
+                leftIcon={<Trash2 className="w-4 h-4 text-danger" />}
+                onClick={handleDeleteStyleData}
+                disabled={isDataBusy || !hasProfile}
+              >
+                Delete Style Data Only
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                leftIcon={<RefreshCw className="w-4 h-4" />}
+                onClick={refreshDataLayer}
+                disabled={isDataBusy}
+              >
+                Refresh Data Layer
+              </Button>
+            </div>
+          </Card>
+
+          <Card className="p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-semibold text-text-secondary uppercase tracking-wider flex items-center gap-1.5">
+                <HardDrive className="w-4 h-4" /> Storage Estimate
+              </span>
+              <span className="text-xs font-mono text-text-secondary">
+                {storageEstimate?.isPersisted ? 'Persisted' : 'Transient'}
+              </span>
+            </div>
+            <div className="text-xs space-y-1 text-text-secondary">
+              <div>Quota: {(storageEstimate?.quotaBytes ? storageEstimate.quotaBytes / (1024 * 1024) : 0).toFixed(0)} MB</div>
+              <div>Usage: {(storageEstimate?.usageBytes ? storageEstimate.usageBytes / 1024 : 0).toFixed(1)} KB</div>
+            </div>
+            <p className="text-xs text-text-secondary pt-2">
+              100% on-device storage in IndexedDB/OPFS with zero cloud backup.
+            </p>
+          </Card>
+        </div>
+
+        {/* Sample Wardrobe Visual Cutouts */}
+        {sampleItems.length > 0 && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-semibold">Loaded Cutouts Preview ({sampleItems.length})</h3>
+              <span className="text-xs text-text-secondary">Original clean SVGs on surface-alt tiles</span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+              {sampleItems.map((item) => (
+                <div
+                  key={item.id}
+                  className="p-3 rounded-xl bg-surface-alt border border-border flex flex-col items-center text-center space-y-2"
+                >
+                  <div className="w-16 h-16 flex items-center justify-center">
+                    {item.imageUrl ? (
+                      <img src={item.imageUrl} alt={item.name} className="w-full h-full object-contain filter drop-shadow-sm" />
+                    ) : (
+                      <div className="w-10 h-10 rounded bg-border animate-pulse" />
+                    )}
+                  </div>
+                  <span className="text-xs font-medium text-text-primary truncate w-full">{item.name}</span>
+                  <span className="text-[10px] text-text-secondary uppercase tracking-wide">{item.category}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* AI Models (Mock Adapters with simulated labels) */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Cpu className="w-4 h-4 text-primary" />
+              <h3 className="text-base font-semibold">AI Models & Adapters (TECH_DESIGN Section 5)</h3>
+            </div>
+            <span className="text-xs text-text-secondary">All simulated models clearly labeled</span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {models.map((m) => (
+              <Card key={m.id} className="p-3 space-y-2">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h4 className="text-sm font-semibold text-text-primary">{m.name}</h4>
+                    <p className="text-xs text-text-secondary">{m.purpose}</p>
+                  </div>
+                  {m.isSimulated && (
+                    <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-warning/10 text-warning border border-warning/20">
+                      Simulated
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between text-xs text-text-secondary pt-1">
+                  <span>Size: {m.sizeBytes / 1000} KB</span>
+                  <span className="flex items-center gap-1">
+                    {m.isInstalled ? (
+                      <>
+                        <CheckCircle2 className="w-3.5 h-3.5 text-success" /> Installed
+                      </>
+                    ) : (
+                      'Not Installed'
+                    )}
+                  </span>
+                </div>
+
+                {installingId === m.id && (
+                  <ProgressBar value={installProgress} label="Installing model" showPercent={true} />
+                )}
+
+                <div className="pt-1">
+                  {m.isInstalled ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-full text-xs"
+                      onClick={() => handleRemoveModel(m.id)}
+                      disabled={installingId !== null}
+                    >
+                      Remove Model
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="primary"
+                      className="w-full text-xs"
+                      onClick={() => handleInstallModel(m.id)}
+                      disabled={installingId !== null}
+                    >
+                      {installingId === m.id ? 'Installing...' : 'Install Model (Simulated)'}
+                    </Button>
+                  )}
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
       </section>
     </div>
   );
