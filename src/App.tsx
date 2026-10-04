@@ -1,15 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { NavRail } from './app/navigation/NavRail';
 import { BottomNav, DestinationTab } from './app/navigation/BottomNav';
+import { useUiStore } from './stores/uiStore';
+import { useNetworkStatus } from './hooks/useNetworkStatus';
+import { useStorageStatus } from './hooks/useStorageStatus';
+import { OfflineBanner } from './ui/OfflineBanner';
+import { StorageAlertBanner } from './ui/StorageAlertBanner';
+import { ErrorBoundary } from './ui/ErrorBoundary';
+import { ScreenSkeleton } from './ui/ScreenSkeleton';
+import { PwaBanner } from './features/pwa/PwaBanner';
+import { Sun, Moon, ShieldCheck, Code } from 'lucide-react';
+
 import { TodayScreen } from './features/today/TodayScreen';
 import { ClosetScreen } from './features/closet/ClosetScreen';
 import { StyleScreen } from './features/style-profile/StyleScreen';
 import { MeScreen } from './features/me/MeScreen';
-import { DevComponentsPage } from './features/dev/DevComponentsPage';
-import { useUiStore } from './stores/uiStore';
-import { Sun, Moon, ShieldCheck, Code } from 'lucide-react';
 
-import { OnboardingFlow } from './features/onboarding/OnboardingFlow';
+const DevComponentsPage = lazy(() => import('./features/dev/DevComponentsPage').then((m) => ({ default: m.DevComponentsPage })));
+const OnboardingFlow = lazy(() => import('./features/onboarding/OnboardingFlow').then((m) => ({ default: m.OnboardingFlow })));
 
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<DestinationTab>('today');
@@ -25,6 +33,8 @@ export const App: React.FC = () => {
   });
   const { setTheme, isDarkMode } = useUiStore();
   const isDark = isDarkMode();
+  const { isOnline } = useNetworkStatus();
+  const { isLowStorage, percentUsed, usageBytes, quotaBytes } = useStorageStatus();
 
   useEffect(() => {
     const handlePopState = () => {
@@ -59,15 +69,21 @@ export const App: React.FC = () => {
   };
 
   if (isDevMode) {
-    return <DevComponentsPage onBackToApp={navigateToApp} />;
+    return (
+      <Suspense fallback={<ScreenSkeleton type="closet" />}>
+        <DevComponentsPage onBackToApp={navigateToApp} />
+      </Suspense>
+    );
   }
 
   if (showOnboarding) {
     return (
-      <OnboardingFlow
-        onComplete={handleCompleteOnboarding}
-        onSkipToApp={handleCompleteOnboarding}
-      />
+      <Suspense fallback={<ScreenSkeleton type="style" />}>
+        <OnboardingFlow
+          onComplete={handleCompleteOnboarding}
+          onSkipToApp={handleCompleteOnboarding}
+        />
+      </Suspense>
     );
   }
 
@@ -100,6 +116,24 @@ export const App: React.FC = () => {
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
+        {/* Offline Banner Indicator per SPEC Section 11 */}
+        {!isOnline && (
+          <OfflineBanner message="You're offline. Everything still works." />
+        )}
+
+        {/* Storage Warning Banner when near device quota per SPEC Section 11 */}
+        {isLowStorage && (
+          <StorageAlertBanner
+            percentUsed={percentUsed}
+            usageBytes={usageBytes}
+            quotaBytes={quotaBytes}
+            onManageStorage={() => setActiveTab('me')}
+          />
+        )}
+
+        {/* PWA Install / Update Notification Banner per TECH_DESIGN Section 9 */}
+        <PwaBanner />
+
         {/* Mobile Top App Bar (Hidden on Tablet/Desktop where NavRail is visible) */}
         <header className="md:hidden sticky top-0 z-30 bg-surface/90 backdrop-blur-md border-b border-border px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -131,12 +165,16 @@ export const App: React.FC = () => {
           </div>
         </header>
 
-        {/* Viewport Screen Content */}
+        {/* Viewport Screen Content Wrapped in ErrorBoundary and Suspense */}
         <main className="flex-1 px-4 sm:px-8 py-6 sm:py-8 pb-24 md:pb-8 overflow-y-auto">
-          {activeTab === 'today' && <TodayScreen onSelectTab={setActiveTab} />}
-          {activeTab === 'closet' && <ClosetScreen />}
-          {activeTab === 'style' && <StyleScreen initialSegment={styleSegment} />}
-          {activeTab === 'me' && <MeScreen />}
+          <ErrorBoundary>
+            <Suspense fallback={<ScreenSkeleton type={activeTab} />}>
+              {activeTab === 'today' && <TodayScreen onSelectTab={setActiveTab} />}
+              {activeTab === 'closet' && <ClosetScreen />}
+              {activeTab === 'style' && <StyleScreen initialSegment={styleSegment} />}
+              {activeTab === 'me' && <MeScreen />}
+            </Suspense>
+          </ErrorBoundary>
         </main>
       </div>
 
@@ -147,3 +185,4 @@ export const App: React.FC = () => {
 };
 
 export default App;
+

@@ -25,6 +25,29 @@ export default defineConfig({
             purpose: 'any maskable',
           },
         ],
+        shortcuts: [
+          {
+            name: 'Today Outfit',
+            short_name: 'Today',
+            description: 'Get today’s outfit recommendation',
+            url: '/?tab=today',
+            icons: [{ src: 'favicon.svg', sizes: '192x192' }],
+          },
+          {
+            name: 'Add Clothing Item',
+            short_name: 'Add Item',
+            description: 'Photograph or add a new piece to your closet',
+            url: '/?tab=closet&action=add',
+            icons: [{ src: 'favicon.svg', sizes: '192x192' }],
+          },
+          {
+            name: 'Outfit Studio',
+            short_name: 'Outfits',
+            description: 'Build and check outfits',
+            url: '/?tab=outfits',
+            icons: [{ src: 'favicon.svg', sizes: '192x192' }],
+          },
+        ],
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
@@ -35,6 +58,17 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+    },
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-dexie': ['dexie', 'dexie-react-hooks'],
+          'vendor-lucide': ['lucide-react'],
+        },
+      },
     },
   },
   server: {

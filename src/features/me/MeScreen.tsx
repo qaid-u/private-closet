@@ -15,9 +15,11 @@ import { SecuritySection } from './SecuritySection';
 import { StyleDataSection } from './StyleDataSection';
 import { SettingsSection } from './SettingsSection';
 import { AboutSection } from './AboutSection';
+import { PwaInstallSection } from './PwaInstallSection';
 import { OnDeviceBadge } from '../../ui/OnDeviceBadge';
+import { Smartphone } from 'lucide-react';
 
-type MeTabSection = 'privacy' | 'models' | 'backup' | 'security' | 'styledata' | 'settings' | 'about';
+type MeTabSection = 'privacy' | 'models' | 'backup' | 'security' | 'styledata' | 'settings' | 'storage' | 'about';
 
 export const MeScreen: React.FC = () => {
   const [activeSection, setActiveSection] = useState<MeTabSection>('privacy');
@@ -29,6 +31,7 @@ export const MeScreen: React.FC = () => {
     { id: 'security', label: 'Lock & Security', icon: <Lock className="w-4 h-4" /> },
     { id: 'styledata', label: 'Style Data', icon: <Sparkles className="w-4 h-4" /> },
     { id: 'settings', label: 'Units & Theme', icon: <Sliders className="w-4 h-4" /> },
+    { id: 'storage', label: 'App & Storage', icon: <Smartphone className="w-4 h-4" /> },
     { id: 'about', label: 'About', icon: <Code2 className="w-4 h-4" /> },
   ];
 
@@ -76,6 +79,7 @@ export const MeScreen: React.FC = () => {
         {activeSection === 'security' && <SecuritySection />}
         {activeSection === 'styledata' && <StyleDataSection />}
         {activeSection === 'settings' && <SettingsSection />}
+        {activeSection === 'storage' && <PwaInstallSection />}
         {activeSection === 'about' && <AboutSection />}
       </div>
     </div>
