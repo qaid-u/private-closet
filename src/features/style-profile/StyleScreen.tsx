@@ -17,6 +17,9 @@ import { Preferences, StyleProfile } from '../../data/types';
 import { styleProfileRepo } from '../../data/repositories/styleProfileRepo';
 import { preferencesRepo } from '../../data/repositories/preferencesRepo';
 import { LookbookGallery } from '../outfits/LookbookGallery';
+import { WearCalendarLog } from './WearCalendarLog';
+import { WardrobeInsights } from './WardrobeInsights';
+import { WardrobePlanner } from './WardrobePlanner';
 import {
   SlidersHorizontal,
   Sparkles,
@@ -393,17 +396,14 @@ export const StyleScreen: React.FC<StyleScreenProps> = ({ initialSegment = 'prof
         <LookbookGallery profile={profile} preferences={preferences} />
       )}
 
-      {/* Placeholder previews for secondary segments (Log, Insights, Plan) */}
-      {segment !== 'profile' && segment !== 'outfits' && (
-        <Card className="p-8 text-center space-y-3">
-          <h2 className="font-serif text-lg font-bold text-text-primary capitalize">
-            {segment} View
-          </h2>
-          <p className="text-xs text-text-secondary max-w-sm mx-auto">
-            This module will connect in subsequent phases with your saved closet items and wear history.
-          </p>
-        </Card>
-      )}
+      {/* Segment 3: Log (Wear Calendar & History) */}
+      {segment === 'log' && <WearCalendarLog />}
+
+      {/* Segment 4: Insights (Cost-Per-Wear & Gap Analysis) */}
+      {segment === 'insights' && <WardrobeInsights profile={profile} />}
+
+      {/* Segment 5: Plan (Weekly & Packing Planners) */}
+      {segment === 'plan' && <WardrobePlanner />}
 
       {/* Delete Confirmation Dialog */}
       <ConfirmDialog

@@ -85,6 +85,17 @@ export const App: React.FC = () => {
           setActiveTab('style');
           setStyleSegment('outfits');
         }}
+        onSelectSecondaryTool={(tool) => {
+          if (tool === 'outfits') {
+            setActiveTab('style');
+            setStyleSegment('outfits');
+          } else if (tool === 'weekly' || tool === 'packing') {
+            setActiveTab('style');
+            setStyleSegment('plan');
+          } else if (tool === 'care') {
+            setActiveTab('closet');
+          }
+        }}
       />
 
       {/* Main Content Area */}

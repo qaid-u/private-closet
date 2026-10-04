@@ -20,6 +20,7 @@ interface NavRailProps {
   isDark: boolean;
   onToggleTheme: () => void;
   onSelectOutfitBuilder?: () => void;
+  onSelectSecondaryTool?: (tool: 'outfits' | 'weekly' | 'packing' | 'care') => void;
 }
 
 export const NavRail: React.FC<NavRailProps> = ({
@@ -28,6 +29,7 @@ export const NavRail: React.FC<NavRailProps> = ({
   isDark,
   onToggleTheme,
   onSelectOutfitBuilder,
+  onSelectSecondaryTool,
 }) => {
   const primaryTabs: { id: DestinationTab; label: string; icon: React.ReactNode }[] = [
     { id: 'today', label: 'Today', icon: <Sparkles className="w-5 h-5" /> },
@@ -92,17 +94,34 @@ export const NavRail: React.FC<NavRailProps> = ({
             Secondary Tools
           </span>
           <div className="space-y-1 pt-1">
-            {secondaryLinks.map((link) => (
-              <button
-                key={link.label}
-                type="button"
-                onClick={link.label === 'Outfit Builder' ? onSelectOutfitBuilder : undefined}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-control text-xs text-text-secondary hover:text-text-primary hover:bg-surface-alt transition-colors cursor-pointer text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
-              >
-                <span className="text-text-secondary">{link.icon}</span>
-                <span>{link.label}</span>
-              </button>
-            ))}
+            {secondaryLinks.map((link) => {
+              const toolType =
+                link.label === 'Outfit Builder'
+                  ? 'outfits'
+                  : link.label === 'Weekly Planner'
+                  ? 'weekly'
+                  : link.label === 'Packing Planner'
+                  ? 'packing'
+                  : 'care';
+
+              return (
+                <button
+                  key={link.label}
+                  type="button"
+                  onClick={() => {
+                    if (onSelectSecondaryTool) {
+                      onSelectSecondaryTool(toolType);
+                    } else if (link.label === 'Outfit Builder' && onSelectOutfitBuilder) {
+                      onSelectOutfitBuilder();
+                    }
+                  }}
+                  className="w-full flex items-center gap-3 px-3 py-2 rounded-control text-xs text-text-secondary hover:text-text-primary hover:bg-surface-alt transition-colors cursor-pointer text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+                >
+                  <span className="text-text-secondary">{link.icon}</span>
+                  <span>{link.label}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
