@@ -47,6 +47,20 @@ export const itemsRepo = {
     await db.items.update(id, { status, updatedAt: Date.now() });
   },
 
+  async setBatchStatus(ids: string[], status: ClothingItem['status']): Promise<void> {
+    await db.transaction('rw', db.items, async () => {
+      for (const id of ids) {
+        await db.items.update(id, { status, updatedAt: Date.now() });
+      }
+    });
+  },
+
+  async deleteBatch(ids: string[]): Promise<void> {
+    for (const id of ids) {
+      await this.delete(id);
+    }
+  },
+
   async toggleFavorite(id: string): Promise<boolean> {
     const item = await db.items.get(id);
     if (!item) return false;
