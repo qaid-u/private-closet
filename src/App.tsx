@@ -9,17 +9,29 @@ import { DevComponentsPage } from './features/dev/DevComponentsPage';
 import { useUiStore } from './stores/uiStore';
 import { Sun, Moon, ShieldCheck, Code } from 'lucide-react';
 
+import { OnboardingFlow } from './features/onboarding/OnboardingFlow';
+
 export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<DestinationTab>('today');
   const [isDevMode, setIsDevMode] = useState(
     typeof window !== 'undefined' && window.location.pathname === '/dev/components'
   );
+  const [showOnboarding, setShowOnboarding] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('onboarding') === 'true') return true;
+    return localStorage.getItem('pc_onboarding_done') !== 'true';
+  });
   const { setTheme, isDarkMode } = useUiStore();
   const isDark = isDarkMode();
 
   useEffect(() => {
     const handlePopState = () => {
       setIsDevMode(window.location.pathname === '/dev/components');
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('onboarding') === 'true') {
+        setShowOnboarding(true);
+      }
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
@@ -39,8 +51,23 @@ export const App: React.FC = () => {
     setTheme(isDark ? 'light' : 'dark');
   };
 
+  const handleCompleteOnboarding = () => {
+    localStorage.setItem('pc_onboarding_done', 'true');
+    setShowOnboarding(false);
+    setActiveTab('today');
+  };
+
   if (isDevMode) {
     return <DevComponentsPage onBackToApp={navigateToApp} />;
+  }
+
+  if (showOnboarding) {
+    return (
+      <OnboardingFlow
+        onComplete={handleCompleteOnboarding}
+        onSkipToApp={handleCompleteOnboarding}
+      />
+    );
   }
 
   return (
