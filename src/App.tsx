@@ -115,7 +115,7 @@ export const App: React.FC = () => {
 
         {/* Viewport Screen Content */}
         <main className="flex-1 px-4 sm:px-8 py-6 sm:py-8 pb-24 md:pb-8 overflow-y-auto">
-          {activeTab === 'today' && <TodayScreen />}
+          {activeTab === 'today' && <TodayScreen onSelectTab={setActiveTab} />}
           {activeTab === 'closet' && <ClosetScreen />}
           {activeTab === 'style' && <StyleScreen />}
           {activeTab === 'me' && <MeScreen />}

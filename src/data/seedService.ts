@@ -43,3 +43,5 @@ export const seedService = {
     return items.some((item) => item.isSample);
   },
 };
+
+export const seedSampleData = () => seedService.loadSampleWardrobe();

@@ -47,6 +47,13 @@ export const itemsRepo = {
     await db.items.update(id, { status, updatedAt: Date.now() });
   },
 
+  async incrementWornCount(id: string): Promise<void> {
+    const item = await db.items.get(id);
+    if (item) {
+      await db.items.update(id, { updatedAt: Date.now() });
+    }
+  },
+
   async setBatchStatus(ids: string[], status: ClothingItem['status']): Promise<void> {
     await db.transaction('rw', db.items, async () => {
       for (const id of ids) {

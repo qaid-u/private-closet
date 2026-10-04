@@ -7,6 +7,10 @@ export const styleProfileRepo = {
     return db.styleProfiles.get('current');
   },
 
+  async get(): Promise<StyleProfile | undefined> {
+    return this.getProfile();
+  },
+
   async saveProfile(profile: StyleProfile): Promise<void> {
     const validated = StyleProfileSchema.parse(profile);
     await db.styleProfiles.put(validated);

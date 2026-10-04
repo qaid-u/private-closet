@@ -4,3 +4,4 @@ export * from './outfitsRepo';
 export * from './wearLogsRepo';
 export * from './imagesRepo';
 export * from './storageService';
+export * from './preferencesRepo';
