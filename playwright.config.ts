@@ -1,4 +1,10 @@
 import { defineConfig } from '@playwright/test';
+import nextEnv from '@next/env';
+
+nextEnv.loadEnvConfig(process.cwd());
+
+const port = Number(process.env.PLAYWRIGHT_PORT ?? process.env.PORT ?? 4173);
+const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? `http://127.0.0.1:${port}`;
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -8,7 +14,7 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: 'list',
   use: {
-    baseURL: 'http://localhost:4173',
+    baseURL,
     trace: 'on-first-retry',
   },
   projects: [
@@ -32,8 +38,8 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'npm run preview -- --port 4173',
-    port: 4173,
+    command: `npm run dev -- -p ${port}`,
+    port,
     reuseExistingServer: !process.env.CI,
   },
 });

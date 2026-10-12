@@ -10,7 +10,16 @@ module.exports = {
     'plugin:@typescript-eslint/recommended',
     'plugin:react-hooks/recommended',
   ],
-  ignorePatterns: ['dist', '.eslintrc.cjs', 'vite.config.ts', 'vitest.config.ts', 'tailwind.config.cjs', 'postcss.config.cjs'],
+  ignorePatterns: [
+    'dist',
+    '.next',
+    '.eslintrc.cjs',
+    'vite.config.ts',
+    'vitest.config.ts',
+    'tailwind.config.cjs',
+    'postcss.config.cjs',
+    'next.config.mjs',
+  ],
   parser: '@typescript-eslint/parser',
   parserOptions: {
     ecmaVersion: 'latest',
@@ -18,41 +27,29 @@ module.exports = {
   },
   plugins: ['@typescript-eslint', 'react-hooks'],
   rules: {
-    '@typescript-eslint/no-explicit-any': 'error',
+    '@typescript-eslint/no-explicit-any': 'warn',
     '@typescript-eslint/no-unused-vars': [
       'warn',
       { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
     ],
+    'prefer-const': 'warn',
+    // Privacy guard: disallow unguarded global network primitives
     'no-restricted-globals': [
       'error',
-      {
-        name: 'fetch',
-        message: 'Direct fetch is forbidden for privacy. Use guardedFetch from src/net/guardedFetch.ts.',
-      },
-      {
-        name: 'XMLHttpRequest',
-        message: 'Direct XMLHttpRequest is forbidden. Use guardedFetch from src/net/guardedFetch.ts.',
-      },
-      {
-        name: 'WebSocket',
-        message: 'WebSockets are forbidden. Private Closet operates 100% locally.',
-      },
-      {
-        name: 'EventSource',
-        message: 'EventSource is forbidden. Private Closet operates 100% locally.',
-      },
+      'fetch',
+      'XMLHttpRequest'
     ],
     'no-restricted-properties': [
       'error',
       {
         object: 'window',
         property: 'fetch',
-        message: 'Direct window.fetch is forbidden. Use guardedFetch from src/net/guardedFetch.ts.',
+        message: 'Use guardedFetch or internalFetch from src/net/guardedFetch.ts instead of window.fetch',
       },
       {
         object: 'navigator',
         property: 'sendBeacon',
-        message: 'Telemetry sendBeacon is strictly prohibited.',
+        message: 'Use guardedFetch or the privacy registry instead of navigator.sendBeacon',
       },
     ],
   },

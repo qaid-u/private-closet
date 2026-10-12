@@ -3,6 +3,8 @@ node_modules/
 
 # Production build output
 dist/
+.next/
+tsconfig.tsbuildinfo
 
 # Test & coverage results
 test-results/
@@ -30,3 +32,6 @@ Thumbs.db
 *.swo
 .vscode/
 .idea/
+
+# Vercel local project link
+.vercel

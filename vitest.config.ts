@@ -1,6 +1,9 @@
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import path from 'path';
+import nextEnv from '@next/env';
+
+nextEnv.loadEnvConfig(process.cwd());
 
 export default defineConfig({
   plugins: [react()],

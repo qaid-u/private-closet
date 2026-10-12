@@ -11,6 +11,7 @@ import {
   Calendar,
   Luggage,
   Sparkle,
+  Cpu,
 } from 'lucide-react';
 import { DestinationTab } from './BottomNav';
 
@@ -152,6 +153,15 @@ export const NavRail: React.FC<NavRailProps> = ({
         >
           <span className="font-mono text-xs">/dev</span>
           <span className="hidden lg:inline">Component Catalog</span>
+        </a>
+
+        {/* AI Settings Link */}
+        <a
+          href="/ai-settings"
+          className="w-full flex items-center justify-center lg:justify-start gap-3 px-3 py-2 rounded-control text-[11px] text-text-secondary hover:text-primary hover:bg-surface-alt transition-colors"
+        >
+          <Cpu className="w-3.5 h-3.5 shrink-0" />
+          <span className="hidden lg:inline">AI Settings</span>
         </a>
       </div>
     </aside>

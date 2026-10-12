@@ -1,0 +1,19 @@
+{
+  "name": "MyStyle AI — Personal Wardrobe & Fashion Stylist",
+  "short_name": "MyStyle AI",
+  "description": "Your Wardrobe. Your Style. Reimagined. Intelligent outfit recommendations crafted strictly from clothes you actually own.",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#F8F7F4",
+  "theme_color": "#3B4D42",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["lifestyle", "productivity", "shopping"]
+}

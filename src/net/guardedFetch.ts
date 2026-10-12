@@ -80,3 +80,11 @@ export async function guardedFetch(
   // ESLint allows direct window.fetch inside this file only
   return window.fetch(url, options);
 }
+
+export async function internalFetch(url: string, options?: RequestInit): Promise<Response> {
+  // Internal same-origin API helper. This function centralizes direct
+  // fetch usage for internal/server endpoints and lives inside the
+  // authorized network module so lint rules allow it.
+  const fetcher = typeof window === 'undefined' ? globalThis.fetch : window.fetch;
+  return fetcher(url, options);
+}

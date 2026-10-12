@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title>MyStyle AI</title>
+  <rect width="512" height="512" rx="112" fill="#3B4D42"/>
+  <path d="M256 96c18 52 55 89 108 108-53 18-90 55-108 108-18-53-55-90-108-108 53-19 90-56 108-108Z" fill="#F8F7F4"/>
+  <path d="M171 310c11 31 33 53 64 64-31 11-53 33-64 64-11-31-33-53-64-64 31-11 53-33 64-64Z" fill="#C9B79C"/>
+  <path d="M360 304c8 22 24 38 46 46-22 8-38 24-46 46-8-22-24-38-46-46 22-8 38-24 46-46Z" fill="#E5EEE9"/>
+</svg>

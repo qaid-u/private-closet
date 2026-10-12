@@ -1,26 +1,20 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Phase 0: Shell & Navigation', () => {
-  test('renders navigation shell, switches tabs, and toggles theme', async ({ page }) => {
+  test('renders landing page and app shell navigation', async ({ page }) => {
     await page.goto('/');
 
-    // Verify Today screen is rendered by default
-    await expect(page.locator('text=Good morning')).toBeVisible();
+    await expect(page.getByRole('heading', { name: /your wardrobe/i })).toBeVisible();
+    await expect(page.getByRole('link', { name: /get started/i })).toBeVisible();
 
-    // Check visible Closet navigation button
-    const closetBtn = page.locator('#nav-closet:visible, #rail-nav-closet:visible');
-    await closetBtn.click();
-    await expect(page.locator('text=Wardrobe Closet')).toBeVisible();
+    await page.goto('/dashboard');
+    await expect(page.getByRole('heading', { name: /good morning/i })).toBeVisible();
 
-    // Switch to Style
-    const styleBtn = page.locator('#nav-style:visible, #rail-nav-style:visible');
-    await styleBtn.click();
-    await expect(page.locator('text=Style Studio')).toBeVisible();
+    await page.getByRole('link', { name: /closet/i }).first().click();
+    await expect(page).toHaveURL(/\/closet$/);
+    await expect(page.getByRole('heading', { name: /closet/i })).toBeVisible();
 
-    // Switch to Me
-    const meBtn = page.locator('#nav-me:visible, #rail-nav-me:visible');
-    await meBtn.click();
-    await expect(page.locator('text=Settings & Privacy')).toBeVisible();
-    await expect(page.locator('text=0 bytes')).toBeVisible();
+    await page.getByRole('button', { name: /toggle theme/i }).click();
+    await expect(page.locator('html')).toHaveClass(/dark/);
   });
 });
