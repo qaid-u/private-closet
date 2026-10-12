@@ -261,7 +261,7 @@ export default function OnboardingPage() {
               Let’s build your digital closet.
             </h2>
             <p className="text-sm text-[#747570] mt-3 max-w-md mx-auto leading-relaxed">
-              We’ve configured your personal styling profile. You can start by uploading your first clothing pieces or explore our pre-loaded demo wardrobe.
+              Your closet starts empty. Add your first clothing item now, or set up optional Style DNA details later.
             </p>
           </div>
         )}

@@ -247,11 +247,19 @@ export default function ClosetPage() {
           <div className="bg-white dark:bg-[#1E1D1B] rounded-2xl border border-[#E6E4DE] dark:border-[#35322F] p-12 text-center">
             <Shirt className="w-12 h-12 text-[#747570] mx-auto mb-3" />
             <h3 className="font-serif text-lg font-bold text-[#222321] dark:text-[#F4F1EC]">
-              No clothes matched your filters
+              {items.length === 0 ? 'Your closet starts here.' : 'No clothes matched your filters'}
             </h3>
             <p className="text-sm text-[#747570] dark:text-[#A8A29A] mt-1">
-              Try adjusting your search query or reset category filter.
+              {items.length === 0
+                ? 'Add your first clothing item and let MyStyle AI discover new ways to style your wardrobe.'
+                : 'Try adjusting your search query or reset category filter.'}
             </p>
+            {items.length === 0 && (
+              <div className="mt-6 flex flex-col sm:flex-row justify-center gap-3">
+                <Link href="/closet/new" className="inline-flex justify-center px-5 py-3 rounded-xl bg-[#3B4D42] text-white text-sm font-semibold">Add My First Item</Link>
+                <Link href="/profile/style-dna" className="inline-flex justify-center px-5 py-3 rounded-xl bg-[#F0EEE9] text-[#222321] text-sm font-semibold">Set Up My Style DNA</Link>
+              </div>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">

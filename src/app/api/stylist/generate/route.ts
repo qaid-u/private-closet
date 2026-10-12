@@ -5,6 +5,7 @@ import { StylistRequest } from '@/types/stylist';
 import { INITIAL_DEMO_WARDROBE } from '@/lib/demoData';
 import { getAllCapabilities, getUsageStats } from '@/lib/ai/providers/router';
 import { createServerClient } from '@/lib/supabase/server';
+import { OutfitExplanationInput } from '@/lib/ai/providers/types';
 
 export async function POST(req: NextRequest) {
   try {
@@ -37,10 +38,31 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    let styleProfile: OutfitExplanationInput['styleProfile'] = body.style_profile;
+    if (supabase && authData.user && !styleProfile) {
+      const [{ data: profile }, { data: settings }] = await Promise.all([
+        supabase.from('body_style_profiles').select('*').eq('user_id', authData.user.id).maybeSingle(),
+        supabase.from('personalisation_settings').select('*').eq('user_id', authData.user.id).maybeSingle(),
+      ]);
+
+      styleProfile = {
+        tasteTags: profile?.preferred_styles ?? undefined,
+      };
+
+      if (settings?.allow_profile_data_in_ai_requests === true) {
+        styleProfile = {
+          ...styleProfile,
+          skinUndertone: settings.enable_skin_tone_personalisation ? profile?.undertone_selection ?? undefined : undefined,
+          height: settings.enable_body_personalisation ? profile?.height_cm ?? undefined : undefined,
+          buildTags: settings.enable_body_personalisation ? profile?.preferred_silhouettes ?? undefined : undefined,
+        };
+      }
+    }
+
     const outfits = await generateOutfitRecommendations(wardrobe, request, {
       enhanceWithAi,
       userId,
-      styleProfile: body.style_profile,
+      styleProfile,
     });
 
     const usage = getUsageStats(userId);

@@ -10,6 +10,7 @@ import {
   Shirt,
   Calendar,
 } from 'lucide-react';
+import Link from 'next/link';
 import { AppShell } from '@/components/layout/AppShell';
 import { useWardrobeStore } from '@/stores/wardrobeStore';
 
@@ -84,6 +85,12 @@ export default function ProfilePage() {
             <span>Save Preferences</span>
           </button>
         </div>
+
+        <Link href="/profile/style-dna" className="block rounded-2xl border border-[#E6E4DE] dark:border-[#35322F] bg-white dark:bg-[#1E1D1B] p-5 hover:border-[#3B4D42] transition-colors">
+          <span className="text-xs font-semibold uppercase tracking-wider text-[#3B4D42] dark:text-[#6FA898]">My Style DNA</span>
+          <h2 className="font-serif text-xl font-bold mt-1 text-[#222321] dark:text-[#F4F1EC]">Measurements, colour profile and AI personalisation</h2>
+          <p className="text-sm text-[#747570] dark:text-[#A8A29A] mt-1">Optional body, fit and colour preferences. You control what is stored and what can be sent to AI.</p>
+        </Link>
 
         {/* Sections */}
         <div className="bg-white dark:bg-[#1E1D1B] p-6 sm:p-8 rounded-2xl border border-[#E6E4DE] dark:border-[#35322F] space-y-8 shadow-xs">

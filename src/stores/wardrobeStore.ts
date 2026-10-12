@@ -72,14 +72,10 @@ function saveState(state: {
 export const useWardrobeStore = create<WardrobeState>((set, get) => {
   const stored = loadStoredState();
 
-  const initialItems = stored?.items || INITIAL_DEMO_WARDROBE;
-  const initialOutfits = stored?.savedOutfits || INITIAL_SAVED_OUTFITS;
-  const initialPlans = stored?.plans || INITIAL_PLANS;
-  const initialCollections = stored?.collections || [
-    { id: 'col-1', name: 'Work Looks', description: 'Smart and tailored office combinations', outfit_ids: ['outfit-3'], created_at: new Date().toISOString() },
-    { id: 'col-2', name: 'Weekend Fits', description: 'Relaxed casual looks', outfit_ids: ['outfit-2'], created_at: new Date().toISOString() },
-    { id: 'col-3', name: 'Dinner & Date Night', description: 'Refined evening outfits', outfit_ids: ['outfit-1'], created_at: new Date().toISOString() },
-  ];
+  const initialItems = stored?.items || [];
+  const initialOutfits = stored?.savedOutfits || [];
+  const initialPlans = stored?.plans || [];
+  const initialCollections = stored?.collections || [];
   const initialProfile: StyleProfile = stored?.styleProfile || {
     style_tags: ['Minimalist', 'Smart Casual', 'Classic'],
     favourite_colours: ['White', 'Navy', 'Black', 'Beige'],
@@ -101,7 +97,7 @@ export const useWardrobeStore = create<WardrobeState>((set, get) => {
       sort_by: 'created_desc',
     },
     isLoading: false,
-    isDemoMode: true,
+    isDemoMode: false,
 
     setItems: (items) => {
       set((state) => {

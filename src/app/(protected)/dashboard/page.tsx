@@ -42,6 +42,54 @@ export default function DashboardPage() {
   const favItemsCount = items.filter((i) => i.is_favourite).length;
   const recentlyWornCount = items.filter((i) => i.wear_count > 0).length;
 
+  if (totalItems === 0) {
+    const steps = [
+      { label: 'Complete style preferences', done: false, href: '/profile/style-dna' },
+      { label: 'Add first clothing item', done: false, href: '/closet/new' },
+      { label: 'Add first bottom', done: false, href: '/closet/new' },
+      { label: 'Add first pair of shoes', done: false, href: '/closet/new' },
+      { label: 'Generate first outfit', done: false, href: '/stylist' },
+    ];
+
+    return (
+      <AppShell>
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 md:py-12 space-y-8">
+          <div className="bg-white dark:bg-[#1E1D1B] rounded-3xl border border-[#E6E4DE] dark:border-[#35322F] p-8 sm:p-10 text-center shadow-xs">
+            <div className="w-16 h-16 rounded-2xl bg-[#E5EEE9] dark:bg-[#253D36] text-[#3B4D42] dark:text-[#6FA898] flex items-center justify-center mx-auto mb-6">
+              <Sparkles className="w-8 h-8" />
+            </div>
+            <h1 className="font-serif text-3xl sm:text-5xl font-bold text-[#222321] dark:text-[#F4F1EC]">
+              Welcome to MyStyle AI.
+            </h1>
+            <p className="text-sm sm:text-base text-[#747570] dark:text-[#A8A29A] mt-3 max-w-xl mx-auto">
+              Your personal wardrobe is waiting to be discovered.
+            </p>
+            <div className="mt-8 flex flex-col sm:flex-row justify-center gap-3">
+              <Link href="/closet/new" className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-[#3B4D42] text-white text-sm font-semibold hover:bg-[#2E3D34]">
+                <PlusCircle className="w-4 h-4" /> Add My First Item
+              </Link>
+              <Link href="/profile/style-dna" className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-[#F0EEE9] dark:bg-[#282623] text-[#222321] dark:text-[#F4F1EC] text-sm font-semibold">
+                Set Up My Style DNA
+              </Link>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-[#1E1D1B] rounded-2xl border border-[#E6E4DE] dark:border-[#35322F] p-5 sm:p-6">
+            <h2 className="font-serif text-xl font-bold mb-4">Onboarding progress</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
+              {steps.map((step, index) => (
+                <Link key={step.label} href={step.href} className="p-4 rounded-xl bg-[#F8F7F4] dark:bg-[#282623] border border-[#E6E4DE] dark:border-[#35322F] text-left">
+                  <span className="text-[10px] uppercase tracking-wider text-[#747570]">Step {index + 1}</span>
+                  <p className="text-sm font-semibold mt-1">{step.label}</p>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      </AppShell>
+    );
+  }
+
   return (
     <AppShell>
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 md:py-8 space-y-8">

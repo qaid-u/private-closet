@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, Suspense } from 'react';
+import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import {
   Sparkles,
@@ -10,6 +11,7 @@ import {
   ThumbsUp,
   ThumbsDown,
   Pin,
+  Shirt,
 } from 'lucide-react';
 import { AppShell } from '@/components/layout/AppShell';
 import { useWardrobeStore } from '@/stores/wardrobeStore';
@@ -96,18 +98,61 @@ function StylistContent() {
     }
   };
 
+  const recordFeedback = async (outfit: RecommendedOutfit, eventType: string, reason?: string) => {
+    try {
+      await internalFetch('/api/style-feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          outfit_id: outfit.id,
+          event_type: eventType,
+          reason,
+          signal_type: outfit.style_tags?.[0] ? 'style_tag' : undefined,
+          signal_value: outfit.style_tags?.[0],
+          metadata: {
+            occasion: outfit.occasion,
+            style_tags: outfit.style_tags,
+            item_ids: outfit.item_ids,
+          },
+        }),
+      });
+    } catch (err) {
+      console.warn('Feedback persistence failed; local feedback remains active:', err);
+    }
+  };
+
   const handleSaveOutfit = (outfit: RecommendedOutfit) => {
     saveOutfit(outfit);
     setSavedIds((prev) => new Set([...prev, outfit.id]));
+    void recordFeedback(outfit, 'save');
     showToast(`Saved "${outfit.title}" to your Outfit Library!`);
   };
 
-  const handleFeedback = (outfitId: string, rating: 'like' | 'dislike') => {
-    setFeedbackGiven((prev) => ({ ...prev, [outfitId]: rating }));
+  const handleWearToday = (outfit: RecommendedOutfit) => {
+    saveOutfit(outfit);
+    recordOutfitWorn(outfit.id);
+    void recordFeedback(outfit, 'wear_today');
+    showToast(`Logged "${outfit.title}" as worn today.`);
+  };
+
+  const handleFeedback = (outfit: RecommendedOutfit, rating: 'like' | 'dislike') => {
+    setFeedbackGiven((prev) => ({ ...prev, [outfit.id]: rating }));
+    void recordFeedback(outfit, rating);
     showToast(rating === 'like' ? 'Outfit liked! Ranking updated.' : 'Feedback recorded. Adjusting balance.');
   };
 
   const itemMap = new Map(items.map((i) => [i.id, i]));
+  const availableItems = items.filter((item) => item.availability_status === 'Available');
+  const categoryCounts = {
+    tops: availableItems.filter((item) => item.category === 'Tops').length,
+    bottoms: availableItems.filter((item) => item.category === 'Bottoms').length,
+    footwear: availableItems.filter((item) => item.category === 'Footwear').length,
+  };
+  const missingPieces = [
+    categoryCounts.tops === 0 ? 'tops' : null,
+    categoryCounts.bottoms === 0 ? 'bottoms' : null,
+    categoryCounts.footwear === 0 ? 'shoes' : null,
+  ].filter(Boolean).join(', ');
 
   return (
     <AppShell>
@@ -133,6 +178,28 @@ function StylistContent() {
             Fresh outfit ideas, generated exclusively from the clothes you own.
           </p>
         </div>
+
+        {availableItems.length === 0 ? (
+          <div className="bg-white dark:bg-[#1E1D1B] rounded-2xl border border-[#E6E4DE] dark:border-[#35322F] p-10 text-center shadow-xs">
+            <div className="w-14 h-14 rounded-2xl bg-[#E5EEE9] dark:bg-[#253D36] text-[#3B4D42] dark:text-[#6FA898] flex items-center justify-center mx-auto mb-4">
+              <Shirt className="w-7 h-7" />
+            </div>
+            <h2 className="font-serif text-2xl font-bold text-[#222321] dark:text-[#F4F1EC]">Your AI Stylist is ready.</h2>
+            <p className="text-sm text-[#747570] dark:text-[#A8A29A] mt-2 max-w-md mx-auto">
+              Add clothes and shoes to your closet to unlock personalised outfit combinations.
+            </p>
+            <Link href="/closet/new" className="mt-6 inline-flex px-6 py-3 rounded-xl bg-[#3B4D42] text-white text-sm font-semibold">Add Clothing</Link>
+          </div>
+        ) : missingPieces ? (
+          <div className="bg-white dark:bg-[#1E1D1B] rounded-2xl border border-[#E6E4DE] dark:border-[#35322F] p-8 text-center shadow-xs">
+            <h2 className="font-serif text-2xl font-bold text-[#222321] dark:text-[#F4F1EC]">Your wardrobe is almost ready.</h2>
+            <p className="text-sm text-[#747570] dark:text-[#A8A29A] mt-2">
+              You have {categoryCounts.tops} tops, {categoryCounts.bottoms} bottoms and {categoryCounts.footwear} shoes available. Add {missingPieces} to generate complete outfits.
+            </p>
+            <Link href="/closet/new" className="mt-6 inline-flex px-6 py-3 rounded-xl bg-[#3B4D42] text-white text-sm font-semibold">Add Clothing</Link>
+          </div>
+        ) : (
+          <>
 
         {/* Stylist Configuration Form */}
         <form onSubmit={handleGenerate} className="bg-white dark:bg-[#1E1D1B] p-6 sm:p-8 rounded-2xl border border-[#E6E4DE] dark:border-[#35322F] shadow-xs space-y-6">
@@ -267,6 +334,8 @@ function StylistContent() {
             )}
           </button>
         </form>
+          </>
+        )}
 
         {/* Results Section */}
         {results.length > 0 && (
@@ -353,7 +422,7 @@ function StylistContent() {
                     <div className="p-4 border-t border-[#E6E4DE] dark:border-[#35322F] flex items-center justify-between gap-3 bg-[#FAF9F6] dark:bg-[#1E1D1B]">
                       <div className="flex items-center gap-1.5">
                         <button
-                          onClick={() => handleFeedback(outfit.id, 'like')}
+                          onClick={() => handleFeedback(outfit, 'like')}
                           className={`p-2 rounded-lg border border-[#E6E4DE] dark:border-[#35322F] transition-colors ${currentFeedback === 'like' ? 'bg-[#3B4D42] text-white' : 'text-[#747570] hover:text-[#222321]'
                             }`}
                           title="Like outfit"
@@ -361,7 +430,7 @@ function StylistContent() {
                           <ThumbsUp className="w-3.5 h-3.5" />
                         </button>
                         <button
-                          onClick={() => handleFeedback(outfit.id, 'dislike')}
+                          onClick={() => handleFeedback(outfit, 'dislike')}
                           className={`p-2 rounded-lg border border-[#E6E4DE] dark:border-[#35322F] transition-colors ${currentFeedback === 'dislike' ? 'bg-[#B84B4B] text-white' : 'text-[#747570] hover:text-[#222321]'
                             }`}
                           title="Dislike outfit"
@@ -380,6 +449,13 @@ function StylistContent() {
                       >
                         <Bookmark className="w-3.5 h-3.5" />
                         <span>{isSaved ? 'Saved in Outfits' : 'Save Outfit'}</span>
+                      </button>
+                      <button
+                        onClick={() => handleWearToday(outfit)}
+                        className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-[#F0EEE9] dark:bg-[#282623] text-[#222321] dark:text-[#F4F1EC] hover:bg-[#E6E4DE]"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5 text-[#3B4D42]" />
+                        <span>Wear Today</span>
                       </button>
                     </div>
                   </div>
