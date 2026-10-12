@@ -1,6 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { INITIAL_DEMO_WARDROBE } from '@/lib/demoData';
+import { AvailabilityStatus } from '@/types/wardrobe';
+
+const ALLOWED_AVAILABILITY_STATUSES = new Set<AvailabilityStatus>([
+  'Available',
+  'In Laundry',
+  'Being Repaired',
+  'In Storage',
+  'Unavailable',
+  'Archived',
+]);
+
+interface WardrobeImageRow {
+  is_primary?: boolean | null;
+  storage_path?: string | null;
+}
 
 function parseDataUri(dataUri: string): { buffer: Buffer; mimeType: string; extension: string } | null {
   const match = dataUri.match(/^data:([^;]+);base64,(.+)$/);
@@ -35,7 +50,31 @@ export async function GET(_req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ data });
+  const itemsWithSignedImages = await Promise.all(
+    (data ?? []).map(async (item) => {
+      const wardrobeImages = Array.isArray(item.wardrobe_images)
+        ? (item.wardrobe_images as WardrobeImageRow[])
+        : [];
+      const primaryImage = wardrobeImages.length > 0
+        ? wardrobeImages.find((image) => image.is_primary) ?? wardrobeImages[0]
+        : null;
+
+      if (!primaryImage?.storage_path) {
+        return item;
+      }
+
+      const { data: signedData } = await supabase.storage
+        .from('wardrobe-images')
+        .createSignedUrl(primaryImage.storage_path, 60 * 60);
+
+      return {
+        ...item,
+        image_url: signedData?.signedUrl,
+      };
+    })
+  );
+
+  return NextResponse.json({ data: itemsWithSignedImages });
 }
 
 export async function POST(req: NextRequest) {
@@ -104,7 +143,73 @@ export async function POST(req: NextRequest) {
         if (imageError) {
           return NextResponse.json({ error: imageError.message }, { status: 400 });
         }
+
+        const { data: signedData } = await supabase.storage
+          .from('wardrobe-images')
+          .createSignedUrl(storagePath, 60 * 60);
+
+        return NextResponse.json({
+          data: {
+            ...data,
+            image_url: signedData?.signedUrl,
+          },
+        });
       }
+    }
+
+    return NextResponse.json({ data });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Invalid request';
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
+export async function PATCH(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const itemId = typeof body.id === 'string' ? body.id : null;
+    const updates = body.updates && typeof body.updates === 'object' ? body.updates : null;
+
+    if (!itemId || !updates) {
+      return NextResponse.json({ error: 'Item id and updates are required' }, { status: 400 });
+    }
+
+    const patch: Record<string, unknown> = {};
+    if (typeof updates.is_favourite === 'boolean') {
+      patch.is_favourite = updates.is_favourite;
+    }
+    if (typeof updates.availability_status === 'string') {
+      if (!ALLOWED_AVAILABILITY_STATUSES.has(updates.availability_status as AvailabilityStatus)) {
+        return NextResponse.json({ error: 'Invalid availability status' }, { status: 400 });
+      }
+      patch.availability_status = updates.availability_status;
+    }
+
+    if (Object.keys(patch).length === 0) {
+      return NextResponse.json({ error: 'No supported updates were provided' }, { status: 400 });
+    }
+
+    patch.updated_at = new Date().toISOString();
+
+    const supabase = createServerClient();
+    if (!supabase) {
+      return NextResponse.json({ data: { id: itemId, ...patch }, source: 'demo' });
+    }
+
+    const { data: authData, error: authError } = await supabase.auth.getUser();
+    if (authError || !authData.user) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
+    const { data, error } = await supabase
+      .from('wardrobe_items')
+      .update(patch)
+      .eq('id', itemId)
+      .select()
+      .single();
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
     return NextResponse.json({ data });

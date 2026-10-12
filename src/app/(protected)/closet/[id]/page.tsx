@@ -19,6 +19,7 @@ import {
 import { AppShell } from '@/components/layout/AppShell';
 import { useWardrobeStore } from '@/stores/wardrobeStore';
 import { AvailabilityStatus } from '@/types/wardrobe';
+import { internalFetch } from '@/net/guardedFetch';
 
 export default function ItemDetailPage() {
   const params = useParams();
@@ -31,6 +32,7 @@ export default function ItemDetailPage() {
   const deleteItem = useWardrobeStore((state) => state.deleteItem);
 
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [isSyncingAvailability, setIsSyncingAvailability] = useState(false);
 
   const item = items.find((i) => i.id === id);
 
@@ -58,6 +60,28 @@ export default function ItemDetailPage() {
   const handleDelete = () => {
     deleteItem(item.id);
     router.push('/closet');
+  };
+
+  const handleAvailabilityChange = async (status: AvailabilityStatus) => {
+    setItemAvailability(item.id, status);
+    setIsSyncingAvailability(true);
+
+    try {
+      const res = await internalFetch('/api/wardrobe', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: item.id, updates: { availability_status: status } }),
+      });
+
+      if (!res.ok && res.status !== 401) {
+        const payload = await res.json().catch(() => null);
+        throw new Error(payload?.error ?? `Failed to update availability (${res.status})`);
+      }
+    } catch (err) {
+      console.warn('Cloud availability sync failed; local wardrobe was updated:', err);
+    } finally {
+      setIsSyncingAvailability(false);
+    }
   };
 
   return (
@@ -159,15 +183,20 @@ export default function ItemDetailPage() {
                 </label>
                 <select
                   value={item.availability_status}
-                  onChange={(e) => setItemAvailability(item.id, e.target.value as AvailabilityStatus)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#F8F7F4] dark:bg-[#282623] border border-[#E6E4DE] dark:border-[#35322F] text-xs font-semibold text-[#222321] dark:text-[#F4F1EC] focus:outline-hidden"
+                  disabled={isSyncingAvailability}
+                  onChange={(e) => void handleAvailabilityChange(e.target.value as AvailabilityStatus)}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-[#F8F7F4] dark:bg-[#282623] border border-[#E6E4DE] dark:border-[#35322F] text-xs font-semibold text-[#222321] dark:text-[#F4F1EC] focus:outline-hidden disabled:opacity-60"
                 >
                   <option value="Available">Available for Outfits</option>
                   <option value="In Laundry">In Laundry</option>
                   <option value="Being Repaired">Being Repaired</option>
                   <option value="In Storage">In Storage</option>
                   <option value="Unavailable">Unavailable</option>
+                  <option value="Archived">Archived</option>
                 </select>
+                <p className="text-[11px] text-[#747570] dark:text-[#A8A29A]">
+                  Only items marked Available are considered for generated outfits.
+                </p>
               </div>
 
               {/* Attributes Grid */}

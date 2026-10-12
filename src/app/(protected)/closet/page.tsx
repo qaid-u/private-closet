@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import {
   Plus,
@@ -13,16 +13,54 @@ import {
 } from 'lucide-react';
 import { AppShell } from '@/components/layout/AppShell';
 import { useWardrobeStore } from '@/stores/wardrobeStore';
-import { WardrobeCategory, AvailabilityStatus } from '@/types/wardrobe';
+import { WardrobeCategory, AvailabilityStatus, WardrobeItem } from '@/types/wardrobe';
+import { internalFetch } from '@/net/guardedFetch';
+
+const availabilityOptions: (AvailabilityStatus | 'All')[] = [
+  'All',
+  'Available',
+  'In Laundry',
+  'Being Repaired',
+  'In Storage',
+  'Unavailable',
+  'Archived',
+];
 
 export default function ClosetPage() {
   const items = useWardrobeStore((state) => state.items);
+  const setItems = useWardrobeStore((state) => state.setItems);
   const toggleFavouriteItem = useWardrobeStore((state) => state.toggleFavouriteItem);
+  const setItemAvailability = useWardrobeStore((state) => state.setItemAvailability);
 
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<WardrobeCategory | 'All'>('All');
   const [selectedAvailability, setSelectedAvailability] = useState<AvailabilityStatus | 'All'>('All');
   const [sortBy, setSortBy] = useState<'created_desc' | 'wear_desc' | 'wear_asc' | 'name_asc'>('created_desc');
+  const [syncingItemId, setSyncingItemId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadCloudWardrobe() {
+      try {
+        const res = await internalFetch('/api/wardrobe');
+        if (!res.ok) return;
+
+        const payload = await res.json();
+        if (isMounted && Array.isArray(payload.data)) {
+          setItems(payload.data as WardrobeItem[]);
+        }
+      } catch (err) {
+        console.warn('Cloud wardrobe load failed; local wardrobe remains active:', err);
+      }
+    }
+
+    void loadCloudWardrobe();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [setItems]);
 
   // Categories list
   const categories: (WardrobeCategory | 'All')[] = [
@@ -65,6 +103,30 @@ export default function ClosetPage() {
   const shoesCount = items.filter((i) => i.category === 'Footwear').length;
   const outerCount = items.filter((i) => i.category === 'Outerwear').length;
   const accessoriesCount = items.filter((i) => i.category === 'Accessories').length;
+  const availableCount = items.filter((i) => i.availability_status === 'Available').length;
+  const unavailableCount = items.length - availableCount;
+
+  const persistItemAvailability = async (id: string, status: AvailabilityStatus) => {
+    setItemAvailability(id, status);
+    setSyncingItemId(id);
+
+    try {
+      const res = await internalFetch('/api/wardrobe', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, updates: { availability_status: status } }),
+      });
+
+      if (!res.ok && res.status !== 401) {
+        const payload = await res.json().catch(() => null);
+        throw new Error(payload?.error ?? `Failed to update availability (${res.status})`);
+      }
+    } catch (err) {
+      console.warn('Cloud availability sync failed; local wardrobe was updated:', err);
+    } finally {
+      setSyncingItemId(null);
+    }
+  };
 
   return (
     <AppShell>
@@ -109,6 +171,12 @@ export default function ClosetPage() {
           <div className="px-3.5 py-1.5 rounded-full bg-white dark:bg-[#1E1D1B] border border-[#E6E4DE] dark:border-[#35322F] text-xs font-semibold shrink-0">
             Accessories: {accessoriesCount}
           </div>
+          <div className="px-3.5 py-1.5 rounded-full bg-[#E5EEE9] dark:bg-[#253D36] border border-[#D5E2DA] dark:border-[#355249] text-xs font-semibold shrink-0 text-[#3B4D42] dark:text-[#6FA898]">
+            Available: {availableCount}
+          </div>
+          <div className="px-3.5 py-1.5 rounded-full bg-[#F0EEE9] dark:bg-[#282623] border border-[#E6E4DE] dark:border-[#35322F] text-xs font-semibold shrink-0 text-[#747570]">
+            Not Available: {unavailableCount}
+          </div>
         </div>
 
         {/* Search & Category Filter Bar */}
@@ -152,6 +220,23 @@ export default function ClosetPage() {
                 }`}
               >
                 {cat}
+              </button>
+            ))}
+          </div>
+
+          {/* Availability Tabs */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+            {availabilityOptions.map((status) => (
+              <button
+                key={status}
+                onClick={() => setSelectedAvailability(status)}
+                className={`px-4 py-2 rounded-xl text-xs font-semibold shrink-0 transition-all ${
+                  selectedAvailability === status
+                    ? 'bg-[#3B4D42] text-white shadow-xs'
+                    : 'bg-[#F8F7F4] dark:bg-[#282623] text-[#747570] hover:text-[#222321] dark:hover:text-[#F4F1EC]'
+                }`}
+              >
+                {status === 'All' ? 'All Availability' : status}
               </button>
             ))}
           </div>
@@ -228,6 +313,25 @@ export default function ClosetPage() {
                     <span>{item.primary_color}</span>
                     <span>Worn {item.wear_count}×</span>
                   </div>
+
+                  <label className="block space-y-1 pt-1">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-[#747570] dark:text-[#A8A29A]">
+                      Outfit availability
+                    </span>
+                    <select
+                      value={item.availability_status}
+                      disabled={syncingItemId === item.id}
+                      onChange={(e) => void persistItemAvailability(item.id, e.target.value as AvailabilityStatus)}
+                      className="w-full px-3 py-2 rounded-xl bg-[#F8F7F4] dark:bg-[#282623] border border-[#E6E4DE] dark:border-[#35322F] text-[11px] font-semibold text-[#222321] dark:text-[#F4F1EC] focus:outline-hidden disabled:opacity-60"
+                    >
+                      <option value="Available">Available</option>
+                      <option value="In Laundry">In Laundry</option>
+                      <option value="Being Repaired">Being Repaired</option>
+                      <option value="In Storage">In Storage</option>
+                      <option value="Unavailable">Unavailable</option>
+                      <option value="Archived">Archived</option>
+                    </select>
+                  </label>
                 </div>
               </div>
             ))}

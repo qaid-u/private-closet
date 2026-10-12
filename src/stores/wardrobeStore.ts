@@ -14,6 +14,7 @@ interface WardrobeState {
   isDemoMode: boolean;
 
   // Actions
+  setItems: (items: WardrobeItem[]) => void;
   addItem: (item: Omit<WardrobeItem, 'id' | 'created_at' | 'updated_at' | 'wear_count'>) => WardrobeItem;
   updateItem: (id: string, updates: Partial<WardrobeItem>) => void;
   deleteItem: (id: string) => void;
@@ -101,6 +102,13 @@ export const useWardrobeStore = create<WardrobeState>((set, get) => {
     },
     isLoading: false,
     isDemoMode: true,
+
+    setItems: (items) => {
+      set((state) => {
+        saveState({ ...state, items });
+        return { items, isDemoMode: false };
+      });
+    },
 
     addItem: (itemData) => {
       const now = new Date().toISOString();
